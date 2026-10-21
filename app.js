@@ -112,11 +112,17 @@ function classify(subject, from, labelIds) {
   const sub = (subject || "").toLowerCase();
   const fr = (from || "").toLowerCase();
   const labs = new Set(labelIds || []);
-  if (labs.has("CATEGORY_PROMOTIONS") || labs.has("CATEGORY_SOCIAL")) {
-    return { kind: "junk", reason: "Promotions / Social" };
-  }
-  if (/linkedin|hellowork|indeed|offre d['’]emploi|job alert|recrut/.test(sub + fr)) {
+  // Recrutement avant les onglets bruit (souvent dans Notifications)
+  if (/linkedin|hellowork|indeed|wttj|offre d['’]emploi|job alert|recrut|jobalerts/.test(sub + fr)) {
     return { kind: "job", reason: "Alerte emploi / recrutement" };
+  }
+  if (
+    labs.has("CATEGORY_PROMOTIONS") ||
+    labs.has("CATEGORY_SOCIAL") ||
+    labs.has("CATEGORY_UPDATES") ||
+    labs.has("CATEGORY_FORUMS")
+  ) {
+    return { kind: "junk", reason: "Promotions / Social / Notifications / Forums" };
   }
   if (/newsletter|unsubscribe|promo|% off|soldes|code promo|vente flash/.test(sub)) {
     return { kind: "junk", reason: "Pub / newsletter" };
@@ -147,7 +153,8 @@ async function applyKind(messageId, kind) {
 
 async function loadMessages() {
   $("status-line").textContent = "Chargement…";
-  const listed = await gmail("messages?q=" + encodeURIComponent("in:inbox") + "&maxResults=40");
+  // Toutes catégories encore en boîte (Principale + Promotions + Social + Notifications…)
+  const listed = await gmail("messages?q=" + encodeURIComponent("in:inbox") + "&maxResults=100");
   const ids = (listed.messages || []).map((m) => m.id);
   const messages = [];
   for (const id of ids) {
