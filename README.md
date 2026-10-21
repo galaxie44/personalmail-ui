@@ -17,3 +17,4 @@ Voir [SETUP.html](SETUP.html) : créer un client OAuth **Application Web** et co
 - Tri manuel / « Trier la boîte »
 - Résumé envoyé à toi-même
 - Lien vers les jobs cloud GitHub Actions
+ 
