@@ -293,20 +293,23 @@ function whoFrom(from) {
   return shortTxt(String(from || "?").replace(/<[^>]+>/g, "").trim() || "?", 40);
 }
 
-/** Hier (Europe/Paris) → dates Gmail after:/before: et libellé FR. */
-function parisYesterdayRange() {
+/** Veille 00:00 → demain 00:00 (Paris) = veille + aujourd’hui. */
+function parisRecentRange() {
   const parisStr = new Date().toLocaleString("en-US", { timeZone: "Europe/Paris" });
-  const p = new Date(parisStr);
-  p.setDate(p.getDate() - 1);
-  const y = p.getFullYear();
-  const m = p.getMonth() + 1;
-  const d = p.getDate();
-  const next = new Date(p);
-  next.setDate(next.getDate() + 1);
-  const gmailAfter = `${y}/${m}/${d}`;
-  const gmailBefore = `${next.getFullYear()}/${next.getMonth() + 1}/${next.getDate()}`;
-  const labelFr = `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${y}`;
-  return { gmailAfter, gmailBefore, labelFr };
+  const today = new Date(parisStr);
+  const yest = new Date(today);
+  yest.setDate(yest.getDate() - 1);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const fmt = (dt) =>
+    `${dt.getFullYear()}/${dt.getMonth() + 1}/${dt.getDate()}`;
+  const label = (dt) =>
+    `${String(dt.getDate()).padStart(2, "0")}/${String(dt.getMonth() + 1).padStart(2, "0")}/${dt.getFullYear()}`;
+  return {
+    gmailAfter: fmt(yest),
+    gmailBefore: fmt(tomorrow),
+    labelFr: `${label(yest)} → ${label(today)}`,
+  };
 }
 
 async function fetchMessagesByQuery(query, maxResults = 80) {
@@ -334,12 +337,12 @@ async function fetchMessagesByQuery(query, maxResults = 80) {
   return messages;
 }
 
-async function fetchYesterdayMessages() {
-  const { gmailAfter, gmailBefore, labelFr } = parisYesterdayRange();
-  // Tous les mails du jour (archivés inclus), hors spam/corbeille/résumés PM
+async function fetchRecentMessages() {
+  const { gmailAfter, gmailBefore, labelFr } = parisRecentRange();
+  // Veille + aujourd’hui (archivés inclus), hors spam/corbeille/résumés PM
   const q =
     `-in:spam -in:trash -subject:[PersonalMail] after:${gmailAfter} before:${gmailBefore}`;
-  const messages = await fetchMessagesByQuery(q, 80);
+  const messages = await fetchMessagesByQuery(q, 100);
   return { messages, labelFr, query: q };
 }
 
@@ -356,7 +359,7 @@ function buildFrenchDigest(messages, periodLabel) {
   const paras = [];
   paras.push(
     `Voici le résumé de ta messagerie (${period}). ` +
-    `${messages.length} mail(s) reçus ce jour (y compris déjà triés ou sortis de la boîte), ` +
+    `${messages.length} mail(s) reçus sur la période (veille + aujourd’hui, y compris déjà triés), ` +
     `dont ${nUseful} utile(s) et ${buckets.junk.length} pub(s)/bruit.`
   );
   if (buckets.important.length) {
@@ -398,14 +401,14 @@ function buildFrenchDigest(messages, periodLabel) {
 async function sendSelfSummary() {
   const btn = $("btn-summary");
   btn.disabled = true;
-  btn.textContent = "Résumé veille…";
+  btn.textContent = "Résumé…";
   try {
-    flash("Chargement des mails de la veille (même déjà triés)…", true);
-    const { messages, labelFr } = await fetchYesterdayMessages();
-    const body = buildFrenchDigest(messages, `veille ${labelFr}`);
+    flash("Chargement veille + aujourd’hui (même déjà triés)…", true);
+    const { messages, labelFr } = await fetchRecentMessages();
+    const body = buildFrenchDigest(messages, labelFr);
     const raw = btoa(unescape(encodeURIComponent(
       `To: ${state.email}\r\n` +
-      `Subject: [PersonalMail] Resume veille ${labelFr}\r\n` +
+      `Subject: [PersonalMail] Resume ${labelFr}\r\n` +
       `Content-Type: text/plain; charset="UTF-8"\r\n\r\n` +
       body
     ))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -416,13 +419,13 @@ async function sendSelfSummary() {
     if (sent?.id) {
       try { await applyKind(sent.id, "summary"); } catch (_) {}
     }
-    toast(`Résumé veille (${labelFr}) envoyé — ${messages.length} mail(s)`);
-    flash(`Résumé de la veille (${labelFr}) envoyé : ${messages.length} mail(s) analysés.`, true);
+    toast(`Résumé (${labelFr}) envoyé — ${messages.length} mail(s)`);
+    flash(`Résumé veille + aujourd’hui (${labelFr}) : ${messages.length} mail(s).`, true);
   } catch (e) {
     flash(e.message);
   } finally {
     btn.disabled = false;
-    btn.textContent = "Résumé de la veille";
+    btn.textContent = "Résumé veille + aujourd’hui";
   }
 }
 
