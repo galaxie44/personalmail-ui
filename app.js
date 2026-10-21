@@ -282,45 +282,56 @@ function buildFrenchDigest(messages) {
   const buckets = { important: [], job: [], junk: [], useful: [], summary: [] };
   for (const m of messages) {
     const c = classify(m.subject, m.from, m.labelIds);
+    if (c.kind === "summary") continue; // ignore les anciens résumés PersonalMail
     const k = c.kind === "normal" ? "useful" : c.kind;
     (buckets[k] || buckets.useful).push(m);
   }
   const nUseful = buckets.important.length + buckets.job.length + buckets.useful.length;
+  const when = new Date().toLocaleString("fr-FR");
   const paras = [];
   paras.push(
-    `Voici le point sur ta messagerie (${new Date().toLocaleString("fr-FR")}). ` +
-    `${messages.length} mail(s) encore en boîte, dont ${nUseful} à classer.`
+    `Point messagerie du ${when}. ` +
+    `Tu as encore ${messages.length} message(s) visibles en boîte ; ` +
+    `voici une synthèse en texte (pas une liste brute).`
   );
   if (buckets.important.length) {
+    const bits = buckets.important.slice(0, 5).map((m) => {
+      const sn = shortTxt(m.snippet, 110);
+      return `${whoFrom(m.from)} au sujet de « ${shortTxt(m.subject, 70)} »` +
+        (sn ? ` (${sn})` : "");
+    });
     paras.push(
-      "À traiter en priorité : " +
-      buckets.important.slice(0, 5).map((m) => {
-        const sn = shortTxt(m.snippet, 100);
-        return `« ${shortTxt(m.subject, 70)} » (${whoFrom(m.from)})` + (sn ? ` — ${sn}` : "");
-      }).join(" ; ") + "."
+      `En priorité, ${buckets.important.length} mail(s) à regarder : ${bits.join(". Ensuite, ")}.`
     );
+  } else {
+    paras.push("Rien d’urgent à traiter en priorité pour le moment.");
   }
   if (buckets.job.length) {
+    const samples = buckets.job.slice(0, 4).map((m) => shortTxt(m.subject, 65));
     paras.push(
-      `Côté recrutement, ${buckets.job.length} alerte(s). Exemples : ` +
-      buckets.job.slice(0, 4).map((m) => `« ${shortTxt(m.subject, 70)} »`).join(" ; ") + "."
+      `Recrutement : ${buckets.job.length} alerte(s) LinkedIn / Hellowork (et similaires). ` +
+      `Parmi elles : ${samples.map((s) => `« ${s} »`).join(", ")}. ` +
+      `Elles sont destinées au libellé PersonalMail/Recrutement, hors Principale.`
     );
   }
   if (buckets.useful.length) {
+    const bits = buckets.useful.slice(0, 5).map(
+      (m) => `« ${shortTxt(m.subject, 55)} » (${whoFrom(m.from)})`
+    );
     paras.push(
-      "Autres messages : " +
-      buckets.useful.slice(0, 5).map((m) => `« ${shortTxt(m.subject, 60)} » de ${whoFrom(m.from)}`).join(" ; ") + "."
+      `Autres messages utiles encore présents : ${bits.join(" ; ")}. ` +
+      `Ils peuvent passer en À-traiter via « Trier la boîte ».`
     );
   }
   if (buckets.junk.length) {
-    paras.push(`${buckets.junk.length} pub(s) / promo(s) détectée(s) à archiver.`);
+    paras.push(
+      `Bruit détecté : ${buckets.junk.length} pub(s) / notif(s) / promo(s) ` +
+      `(onglets Promotions, Social ou Notifications) à sortir de la boîte.`
+    );
   }
-  if (!buckets.important.length && !buckets.useful.length && !buckets.job.length) {
-    paras.push("Rien d’urgent : la boîte est déjà propre.");
+  if (!nUseful && !buckets.junk.length) {
+    paras.push("La boîte est déjà propre : aucun point notable.");
   }
-  paras.push(
-    "Astuce : « Trier la boîte » laisse uniquement les résumés PersonalMail et les mails Important en Principale."
-  );
   return paras.join("\n\n");
 }
 
@@ -331,7 +342,7 @@ async function sendSelfSummary() {
     const body = buildFrenchDigest(state.messages);
     const raw = btoa(unescape(encodeURIComponent(
       `To: ${state.email}\r\n` +
-      `Subject: [PersonalMail] Resume boite\r\n` +
+      `Subject: [PersonalMail] Point boite (texte)\r\n` +
       `Content-Type: text/plain; charset="UTF-8"\r\n\r\n` +
       body
     ))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
