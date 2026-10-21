@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PersonalMail — Gestion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <header class="topnav">
+    <div class="brand"><span class="brand-mark"></span> PersonalMail</div>
+    <div class="nav-right">
+      <span id="user-email" class="muted"></span>
+      <button type="button" class="btn btn-ghost btn-sm" id="btn-logout" hidden>Déconnexion</button>
+    </div>
+  </header>
+
+  <main class="main">
+    <div id="flash" class="flash" hidden></div>
+
+    <section id="login-view" class="panel login-panel">
+      <h1>Gérer tes mails</h1>
+      <p class="muted">Interface gratuite (sans serveur payant). Connexion Google → Gmail API dans ton navigateur. Rien ne part sur un hébergeur tiers.</p>
+      <div id="oauth-help" class="warning-box" hidden></div>
+      <button type="button" class="btn btn-primary" id="btn-login">Se connecter avec Google</button>
+      <p class="muted small">Besoin d’un client OAuth « Application Web » (gratuit) — voir <a href="SETUP.html">SETUP.html</a>.</p>
+    </section>
+
+    <section id="app-view" hidden>
+      <div class="toolbar">
+        <div>
+          <h1>Boîte</h1>
+          <div class="stat-inline" id="status-line">…</div>
+        </div>
+        <div class="actions-row">
+          <button type="button" class="btn btn-primary" id="btn-auto-sort">Trier la boîte</button>
+          <button type="button" class="btn btn-secondary" id="btn-summary">M’envoyer un résumé</button>
+          <button type="button" class="btn btn-secondary" id="btn-refresh">Actualiser</button>
+          <a class="btn btn-ghost" href="https://github.com/galaxie44/personalmail-agent/actions" target="_blank" rel="noopener">Jobs cloud</a>
+        </div>
+      </div>
+
+      <div class="filters">
+        <input class="input" type="search" id="search" placeholder="Rechercher…" />
+      </div>
+
+      <div class="inbox-layout">
+        <section class="panel">
+          <div class="panel-body scroll">
+            <ul class="mail-list" id="mail-list"></ul>
+            <div class="empty-state" id="mail-empty" hidden>
+              <h3>Aucun mail</h3>
+              <p>Boîte principale vide ou erreur de chargement.</p>
+            </div>
+          </div>
+        </section>
+        <section class="panel">
+          <div class="panel-body" id="detail">
+            <div class="detail-empty">
+              <h3>Choisis un mail</h3>
+              <p>Trie, archive, ou envoie un résumé à toi-même.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast-root" class="toast-root"></div>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

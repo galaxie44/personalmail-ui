@@ -1,0 +1,123 @@
+:root {
+  --bg: #f7f7f5;
+  --surface: #fff;
+  --ink: #1c1c1a;
+  --muted: #6b6b66;
+  --line: #e6e6e1;
+  --accent: #0f6e56;
+  --accent-soft: #e8f5f0;
+  --danger: #b42318;
+  --radius: 8px;
+  --font: "DM Sans", system-ui, sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--bg);
+  line-height: 1.45;
+  min-height: 100vh;
+}
+.topnav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .75rem 1.25rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: center; gap: .5rem; font-weight: 700; }
+.brand-mark {
+  width: .75rem; height: .75rem; border-radius: 2px; background: var(--accent);
+}
+.nav-right { display: flex; align-items: center; gap: .75rem; }
+.main { max-width: 1100px; margin: 0 auto; padding: 1.25rem; }
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.panel-body { padding: 1rem; }
+.panel-body.scroll { padding: 0; max-height: 70vh; overflow: auto; }
+.login-panel { padding: 2rem; max-width: 480px; margin: 2rem auto; }
+.login-panel h1 { margin-top: 0; }
+.toolbar {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem;
+  align-items: flex-start; margin-bottom: 1rem;
+}
+.toolbar h1 { margin: 0; font-size: 1.35rem; }
+.stat-inline { color: var(--muted); font-size: .9rem; margin-top: .25rem; }
+.actions-row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.filters { margin-bottom: 1rem; }
+.inbox-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(280px, 1.2fr);
+  gap: 1rem;
+}
+@media (max-width: 800px) {
+  .inbox-layout { grid-template-columns: 1fr; }
+}
+.btn {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 6px;
+  padding: .45rem .85rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+.btn:disabled { opacity: .55; cursor: not-allowed; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn-secondary { background: #fff; }
+.btn-ghost { background: transparent; }
+.btn-sm { padding: .3rem .55rem; font-size: .85rem; }
+.btn-danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+.input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: .55rem .75rem;
+  font: inherit;
+}
+.mail-list { list-style: none; margin: 0; padding: 0; }
+.mail-item {
+  display: flex; gap: .75rem; justify-content: space-between;
+  padding: .85rem 1rem; border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+.mail-item:hover, .mail-item.selected { background: var(--accent-soft); }
+.mail-from { font-weight: 600; font-size: .9rem; }
+.mail-subject { font-size: .92rem; margin-top: .1rem; }
+.mail-snippet { color: var(--muted); font-size: .8rem; margin-top: .15rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 36ch; }
+.mail-date { color: var(--muted); font-size: .75rem; white-space: nowrap; }
+.meta-line { color: var(--muted); font-size: .85rem; margin-bottom: .75rem; }
+.body-preview {
+  white-space: pre-wrap; background: var(--bg); border-radius: 6px;
+  padding: .85rem; max-height: 280px; overflow: auto; font-size: .9rem;
+}
+.detail-empty { text-align: center; color: var(--muted); padding: 2rem 1rem; }
+.empty-state { text-align: center; color: var(--muted); padding: 2rem; }
+.muted { color: var(--muted); }
+.small { font-size: .85rem; }
+.warning-box {
+  background: #fff6e0; border: 1px solid #f0d78c; border-radius: 6px;
+  padding: .75rem; margin: 1rem 0; font-size: .9rem;
+}
+.flash {
+  padding: .75rem 1rem; border-radius: 6px; margin-bottom: 1rem;
+  background: #fef3f2; color: var(--danger); border: 1px solid #fecdca;
+}
+.flash.ok { background: var(--accent-soft); color: var(--accent); border-color: #b7e4d4; }
+.toast-root { position: fixed; right: 1rem; bottom: 1rem; z-index: 50; display: flex; flex-direction: column; gap: .5rem; }
+.toast {
+  background: var(--ink); color: #fff; padding: .65rem .9rem; border-radius: 6px;
+  font-size: .9rem; max-width: 320px;
+}
+code, .mono { font-family: ui-monospace, monospace; font-size: .85em; }

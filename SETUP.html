@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Setup OAuth — PersonalMail UI</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="main" style="max-width:640px">
+    <h1>Configurer Google (gratuit, ~2 min)</h1>
+    <p>L’interface tourne <strong>dans ton navigateur</strong> (pages GitHub, 0 €). Google exige un client OAuth de type <strong>Application Web</strong>.</p>
+
+    <ol>
+      <li>Ouvre <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Google Cloud → Identifiants</a> (projet <span class="mono">camera-orthez</span> ou le tien).</li>
+      <li>Active l’API Gmail si besoin : <a href="https://console.cloud.google.com/apis/library/gmail.googleapis.com" target="_blank" rel="noopener">Gmail API</a>.</li>
+      <li><strong>Créer des identifiants</strong> → <strong>ID client OAuth</strong> → type <strong>Application Web</strong>.</li>
+      <li>Origines JavaScript autorisées — ajoute :
+        <ul>
+          <li><span class="mono" id="origin">https://galaxie44.github.io</span></li>
+          <li><span class="mono">http://127.0.0.1:5500</span> (test local optionnel)</li>
+        </ul>
+      </li>
+      <li>Copie le <strong>Client ID</strong> dans <span class="mono">config.js</span> (<code>clientId: "….apps.googleusercontent.com"</code>).</li>
+      <li>Écran de consentement OAuth : ajoute ton compte Google comme utilisateur de test si l’app est en mode « Testing ».</li>
+    </ol>
+
+    <div class="warning-box">
+      Ne mets <strong>jamais</strong> le <em>client_secret</em> dans cette interface. Un secret exposé → régénère-le dans la console Google.
+    </div>
+
+    <p><a class="btn btn-primary" href="index.html">Retour à l’interface</a></p>
+  </main>
+  <script>
+    document.getElementById("origin").textContent = location.origin.includes("github.io")
+      ? location.origin
+      : "https://galaxie44.github.io";
+  </script>
+</body>
+</html>
