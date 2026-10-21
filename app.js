@@ -111,9 +111,20 @@ async function modifyMessage(id, add = [], remove = []) {
 function classify(subject, from, labelIds) {
   const sub = (subject || "").toLowerCase();
   const fr = (from || "").toLowerCase();
+  const blob = `${sub} ${fr}`;
   const labs = new Set(labelIds || []);
-  // Recrutement avant les onglets bruit (souvent dans Notifications)
-  if (/linkedin|hellowork|indeed|wttj|offre d['’]emploi|job alert|recrut|jobalerts/.test(sub + fr)) {
+  if (sub.startsWith("[personalmail]")) {
+    return { kind: "summary", reason: "Résumé PersonalMail" };
+  }
+  // Important : SOBEGI, alternance, mails personnels
+  if (/sobegi|so[\s.\-]?begi/.test(blob)) {
+    return { kind: "important", reason: "SOBEGI / lié à SOBEGI" };
+  }
+  if (/alternance|apprentissage|contrat\s+pro\b|\bcfa\b/.test(blob)) {
+    return { kind: "important", reason: "Offre / sujet alternance" };
+  }
+  // Recrutement générique (hors alternance) → hors boîte
+  if (/linkedin|hellowork|indeed|wttj|offre d['’]emploi|job alert|recrut|jobalerts/.test(blob)) {
     return { kind: "job", reason: "Alerte emploi / recrutement" };
   }
   if (
@@ -127,11 +138,15 @@ function classify(subject, from, labelIds) {
   if (/newsletter|unsubscribe|promo|% off|soldes|code promo|vente flash/.test(sub)) {
     return { kind: "junk", reason: "Pub / newsletter" };
   }
-  if (/urgent|asap|immédiat|echeance|deadline/.test(sub)) {
-    return { kind: "important", reason: "Priorité haute" };
-  }
-  if (sub.startsWith("[personalmail]")) {
-    return { kind: "summary", reason: "Résumé PersonalMail" };
+  // Mail personnel : Prénom Nom + boîte perso / pas noreply
+  const display = String(from || "").replace(/<[^>]+>/g, "").trim();
+  const emailMatch = String(from || "").match(/<([^>]+)>/);
+  const email = (emailMatch ? emailMatch[1] : "").toLowerCase();
+  const isAuto = /noreply|no-reply|newsletter|notification|mailer-daemon|hellowork|linkedin/.test(fr + email);
+  const personName = /^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'\-]+(\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ'\-]+){1,3}$/.test(display);
+  const personalDomain = /@(gmail|googlemail|outlook|hotmail|live|yahoo|icloud|proton|orange|free|sfr|laposte|wanadoo)\./i.test(email || fr);
+  if (!isAuto && (personName || personalDomain)) {
+    return { kind: "important", reason: "Mail personnel / interlocuteur réel" };
   }
   return { kind: "normal", reason: "Mail ordinaire" };
 }
