@@ -9,24 +9,27 @@
 <body>
   <main class="main" style="max-width:640px">
     <h1>Configurer Google (gratuit, ~2 min)</h1>
-    <p>L’interface tourne <strong>dans ton navigateur</strong> (pages GitHub, 0 €). Google exige un client OAuth de type <strong>Application Web</strong>.</p>
+    <p>Si tu vois <strong>401 invalid_client / no registered origin</strong> : tu utilises encore un client <em>Desktop</em>. Il faut un client <strong>Application Web</strong> avec l’origine ci‑dessous.</p>
 
     <ol>
       <li>Ouvre <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Google Cloud → Identifiants</a> (projet <span class="mono">camera-orthez</span> ou le tien).</li>
       <li>Active l’API Gmail si besoin : <a href="https://console.cloud.google.com/apis/library/gmail.googleapis.com" target="_blank" rel="noopener">Gmail API</a>.</li>
-      <li><strong>Créer des identifiants</strong> → <strong>ID client OAuth</strong> → type <strong>Application Web</strong>.</li>
-      <li>Origines JavaScript autorisées — ajoute :
+      <li><strong>Créer des identifiants</strong> → <strong>ID client OAuth</strong> → type <strong>Application Web</strong> (pas « Application de bureau »).</li>
+      <li>Nom : <span class="mono">PersonalMail UI</span>.</li>
+      <li><strong>Origines JavaScript autorisées</strong> — ajoute exactement :
         <ul>
           <li><span class="mono" id="origin">https://galaxie44.github.io</span></li>
-          <li><span class="mono">http://127.0.0.1:5500</span> (test local optionnel)</li>
         </ul>
+        (pas de chemin <span class="mono">/personalmail-ui</span>, uniquement le domaine.)
       </li>
-      <li>Copie le <strong>Client ID</strong> dans <span class="mono">config.js</span> (<code>clientId: "….apps.googleusercontent.com"</code>).</li>
-      <li>Écran de consentement OAuth : ajoute ton compte Google comme utilisateur de test si l’app est en mode « Testing ».</li>
+      <li>URI de redirection : laisse vide (pas besoin pour GIS).</li>
+      <li>Créer → copie le <strong>Client ID</strong> (…apps.googleusercontent.com).</li>
+      <li>Colle-le dans <span class="mono">config.js</span> du repo <span class="mono">personalmail-ui</span>, ou envoie-le-moi et je pousse la mise à jour.</li>
+      <li>Écran de consentement : si mode « Testing », ajoute <span class="mono">edouard.clemenceau.pro@gmail.com</span> comme utilisateur de test.</li>
     </ol>
 
     <div class="warning-box">
-      Ne mets <strong>jamais</strong> le <em>client_secret</em> dans cette interface. Un secret exposé → régénère-le dans la console Google.
+      Ne mets <strong>jamais</strong> le <em>client_secret</em> dans cette interface. Le Client ID seul suffit.
     </div>
 
     <p><a class="btn btn-primary" href="index.html">Retour à l’interface</a></p>
