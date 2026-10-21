@@ -278,21 +278,71 @@ function whoFrom(from) {
   return shortTxt(String(from || "?").replace(/<[^>]+>/g, "").trim() || "?", 40);
 }
 
-function buildFrenchDigest(messages) {
+/** Hier (Europe/Paris) → dates Gmail after:/before: et libellé FR. */
+function parisYesterdayRange() {
+  const parisStr = new Date().toLocaleString("en-US", { timeZone: "Europe/Paris" });
+  const p = new Date(parisStr);
+  p.setDate(p.getDate() - 1);
+  const y = p.getFullYear();
+  const m = p.getMonth() + 1;
+  const d = p.getDate();
+  const next = new Date(p);
+  next.setDate(next.getDate() + 1);
+  const gmailAfter = `${y}/${m}/${d}`;
+  const gmailBefore = `${next.getFullYear()}/${next.getMonth() + 1}/${next.getDate()}`;
+  const labelFr = `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}/${y}`;
+  return { gmailAfter, gmailBefore, labelFr };
+}
+
+async function fetchMessagesByQuery(query, maxResults = 80) {
+  const listed = await gmail(
+    "messages?q=" + encodeURIComponent(query) + "&maxResults=" + maxResults
+  );
+  const ids = (listed.messages || []).map((m) => m.id);
+  const messages = [];
+  for (const id of ids) {
+    const raw = await gmail(
+      `messages/${id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`
+    );
+    const headers = Object.fromEntries(
+      (raw.payload?.headers || []).map((h) => [h.name.toLowerCase(), h.value])
+    );
+    messages.push({
+      id,
+      subject: headers.subject || "(sans objet)",
+      from: headers.from || "?",
+      date: raw.internalDate,
+      snippet: raw.snippet || "",
+      labelIds: raw.labelIds || [],
+    });
+  }
+  return messages;
+}
+
+async function fetchYesterdayMessages() {
+  const { gmailAfter, gmailBefore, labelFr } = parisYesterdayRange();
+  // Tous les mails du jour (archivés inclus), hors spam/corbeille/résumés PM
+  const q =
+    `-in:spam -in:trash -subject:[PersonalMail] after:${gmailAfter} before:${gmailBefore}`;
+  const messages = await fetchMessagesByQuery(q, 80);
+  return { messages, labelFr, query: q };
+}
+
+function buildFrenchDigest(messages, periodLabel) {
   const buckets = { important: [], job: [], junk: [], useful: [], summary: [] };
   for (const m of messages) {
     const c = classify(m.subject, m.from, m.labelIds);
-    if (c.kind === "summary") continue; // ignore les anciens résumés PersonalMail
+    if (c.kind === "summary") continue;
     const k = c.kind === "normal" ? "useful" : c.kind;
     (buckets[k] || buckets.useful).push(m);
   }
   const nUseful = buckets.important.length + buckets.job.length + buckets.useful.length;
-  const when = new Date().toLocaleString("fr-FR");
+  const period = periodLabel || new Date().toLocaleString("fr-FR");
   const paras = [];
   paras.push(
-    `Point messagerie du ${when}. ` +
-    `Tu as encore ${messages.length} message(s) visibles en boîte ; ` +
-    `voici une synthèse en texte (pas une liste brute).`
+    `Voici le résumé de ta messagerie (${period}). ` +
+    `${messages.length} mail(s) reçus ce jour (y compris déjà triés ou sortis de la boîte), ` +
+    `dont ${nUseful} utile(s) et ${buckets.junk.length} pub(s)/bruit.`
   );
   if (buckets.important.length) {
     const bits = buckets.important.slice(0, 5).map((m) => {
@@ -301,36 +351,31 @@ function buildFrenchDigest(messages) {
         (sn ? ` (${sn})` : "");
     });
     paras.push(
-      `En priorité, ${buckets.important.length} mail(s) à regarder : ${bits.join(". Ensuite, ")}.`
+      `En priorité : ${bits.join(". Ensuite, ")}.`
     );
   } else {
-    paras.push("Rien d’urgent à traiter en priorité pour le moment.");
+    paras.push("Rien d’urgent à traiter en priorité sur cette période.");
   }
   if (buckets.job.length) {
     const samples = buckets.job.slice(0, 4).map((m) => shortTxt(m.subject, 65));
     paras.push(
-      `Recrutement : ${buckets.job.length} alerte(s) LinkedIn / Hellowork (et similaires). ` +
-      `Parmi elles : ${samples.map((s) => `« ${s} »`).join(", ")}. ` +
-      `Elles sont destinées au libellé PersonalMail/Recrutement, hors Principale.`
+      `Recrutement : ${buckets.job.length} alerte(s). ` +
+      `Exemples : ${samples.map((s) => `« ${s} »`).join(", ")}.`
     );
   }
   if (buckets.useful.length) {
-    const bits = buckets.useful.slice(0, 5).map(
+    const bits = buckets.useful.slice(0, 6).map(
       (m) => `« ${shortTxt(m.subject, 55)} » (${whoFrom(m.from)})`
     );
-    paras.push(
-      `Autres messages utiles encore présents : ${bits.join(" ; ")}. ` +
-      `Ils peuvent passer en À-traiter via « Trier la boîte ».`
-    );
+    paras.push(`Autres messages utiles : ${bits.join(" ; ")}.`);
   }
   if (buckets.junk.length) {
     paras.push(
-      `Bruit détecté : ${buckets.junk.length} pub(s) / notif(s) / promo(s) ` +
-      `(onglets Promotions, Social ou Notifications) à sortir de la boîte.`
+      `${buckets.junk.length} pub(s) / notif(s) / promo(s) ont été (ou peuvent être) filtrées.`
     );
   }
-  if (!nUseful && !buckets.junk.length) {
-    paras.push("La boîte est déjà propre : aucun point notable.");
+  if (!messages.length) {
+    return `Résumé (${period}) : aucun mail reçu ce jour-là.`;
   }
   return paras.join("\n\n");
 }
@@ -338,11 +383,14 @@ function buildFrenchDigest(messages) {
 async function sendSelfSummary() {
   const btn = $("btn-summary");
   btn.disabled = true;
+  btn.textContent = "Résumé veille…";
   try {
-    const body = buildFrenchDigest(state.messages);
+    flash("Chargement des mails de la veille (même déjà triés)…", true);
+    const { messages, labelFr } = await fetchYesterdayMessages();
+    const body = buildFrenchDigest(messages, `veille ${labelFr}`);
     const raw = btoa(unescape(encodeURIComponent(
       `To: ${state.email}\r\n` +
-      `Subject: [PersonalMail] Point boite (texte)\r\n` +
+      `Subject: [PersonalMail] Resume veille ${labelFr}\r\n` +
       `Content-Type: text/plain; charset="UTF-8"\r\n\r\n` +
       body
     ))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -353,12 +401,13 @@ async function sendSelfSummary() {
     if (sent?.id) {
       try { await applyKind(sent.id, "summary"); } catch (_) {}
     }
-    toast("Résumé envoyé dans Gmail");
-    flash("Résumé envoyé — regarde ta boîte / notifs Gmail.", true);
+    toast(`Résumé veille (${labelFr}) envoyé — ${messages.length} mail(s)`);
+    flash(`Résumé de la veille (${labelFr}) envoyé : ${messages.length} mail(s) analysés.`, true);
   } catch (e) {
     flash(e.message);
   } finally {
     btn.disabled = false;
+    btn.textContent = "Résumé de la veille";
   }
 }
 
